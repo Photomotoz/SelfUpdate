@@ -1,12 +1,9 @@
 package main
 
 import (
-	"fmt"
-	"github.com/fsnotify/fsnotify"
 	"log"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 )
 
@@ -16,8 +13,8 @@ const privateKey = "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAAS
 
 const version string = "0.0.1"
 
-var runningDirectory string = ""
-var binaryName string = ""
+var RunningDirectory string = ""
+var BinaryName string = ""
 
 // Application watches the folder from which it is running for changes
 // If a new binary is detected then we check it's signature and see if we can decode
@@ -35,11 +32,12 @@ func main() {
 	//blockPriv, _ := pem.Decode([]byte(privateKey))
 	//privKey, _ := x509.ParsePKCS1PrivateKey(blockPriv.Bytes)
 
-	ex, err := os.Executable()
+	exe, err := os.Executable()
 	errorCheck(err)
-	runningDirectory, err := filepath.EvalSymlinks(ex)
-	errorCheck(err)
-	fmt.Println("Running path : " + runningDirectory)
+	_, RunningDirectory, BinaryName = parsePath(exe)
+
+	log.Println("Running path : " + RunningDirectory)
+	log.Println("Running binary : " + BinaryName)
 
 	go watcher()
 
@@ -53,76 +51,5 @@ func main() {
 
 // Wrap with decorator or something to check for errors? Bubble them up to a logger?
 func verifySig() {
-
-}
-
-func checkFiles() {
-
-	f, err := os.Open(runningDirectory)
-	errorCheck(err)
-
-	info, err := os.Stat()
-	fmt.Println("OPENED FILE NAME : " + f.Name())
-
-}
-
-func errorCheck(e error) {
-	if e != nil {
-		panic(e)
-	}
-}
-
-// Watches for new binaries that are compatible
-// Own thread
-// If found, will call verify sig
-func watcher() {
-	watcher, err := fsnotify.NewWatcher()
-
-	errorCheck(err)
-	defer watcher.Close()
-
-	// Start listening for events.
-	go func() {
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					log.Println("error:", err)
-					continue
-				}
-				log.Println("event op :", event.Op)
-				log.Println("event name:", event.Name)
-				if event.Has(fsnotify.Create) || event.Has(fsnotify.Write) {
-					// CHECK FOR BINARY AND SIG
-					checkFiles()
-				}
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					continue
-				}
-				log.Println("error:", err)
-			}
-		}
-	}()
-
-	// Add a path.
-	err = watcher.Add(runningDirectory)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Run until told to stop
-	quitChannel := make(chan os.Signal, 1)
-	signal.Notify(quitChannel, syscall.SIGINT, syscall.SIGTERM)
-	<-quitChannel
-	//time for cleanup before exit
-	log.Println("Adios! 2")
-}
-
-func grantOwnership() {
-
-}
-
-func receiveOwnership() {
 
 }
