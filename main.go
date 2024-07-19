@@ -16,16 +16,10 @@ const version string = "0.0.1"
 var RunningDirectory string = ""
 var BinaryName string = ""
 
-// Application watches the folder from which it is running for changes
-// If a new binary is detected then we check it's signature and see if we can decode
-
-// Watch for binary to change, if it has, check it's signature,
-// If that matches then accept the new binary, and load it,
-// Transfer all running process to it, and kill this process
 func main() {
 	log.Println("Starting SelfUpdate version " + version)
 
-	//// Store public key
+	// Store public key
 	//blockPub, _ := pem.Decode([]byte(publicKey))
 	//pubKey, _ := x509.ParsePKCS1PublicKey(blockPub.Bytes)
 	//
@@ -41,15 +35,18 @@ func main() {
 
 	go watcher()
 
-	// Run until told to stop
-	quitChannel := make(chan os.Signal, 1)
-	signal.Notify(quitChannel, syscall.SIGINT, syscall.SIGTERM)
-	<-quitChannel
-	//time for cleanup before exit
-	log.Println("Adios!")
+	exit := make(chan os.Signal, 1)
+	signal.Notify(exit, os.Interrupt, syscall.SIGTERM)
+	<-exit
+
+	log.Println("Shutting down SelfUpdate version " + version)
 }
 
-// Wrap with decorator or something to check for errors? Bubble them up to a logger?
-func verifySig() {
-
+func replaceProcess() {
+	log.Println("Starting new process...")
+	err := syscall.Exec(RunningDirectory+"/"+BinaryName, nil, os.Environ())
+	if err != nil {
+		log.Println(err)
+		go watcher()
+	}
 }

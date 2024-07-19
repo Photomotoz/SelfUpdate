@@ -3,29 +3,32 @@ package main
 import (
 	"github.com/fsnotify/fsnotify"
 	"log"
-	"os"
-	"os/exec"
-	"os/signal"
-	"syscall"
 )
 
 func watcher() {
+	log.Println("Starting watcher...")
 	watcher, err := fsnotify.NewWatcher()
 
 	errorCheck(err)
-	defer watcher.Close()
+	defer func() {
+		watcher.Close()
+		replaceProcess()
+	}()
 
-	// Start listening for events.
+	quit := make(chan bool)
+
 	go func() {
 		for {
 			select {
+			case <-quit:
+				return
 			case event, ok := <-watcher.Events:
 				if !ok {
 					return
 				}
 				if event.Has(fsnotify.Create) || event.Has(fsnotify.Write) {
 					log.Println("Valid change detected in dir, evaluating....")
-					checkFiles(event)
+					quit <- checkFiles(event)
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
@@ -36,48 +39,23 @@ func watcher() {
 		}
 	}()
 
-	// Add a path.
 	err = watcher.Add(RunningDirectory)
-	if err != nil {
-		log.Fatal(err)
-	}
+	errorCheck(err)
+	<-quit
 
-	// Run until told to stop
-	quitChannel := make(chan os.Signal, 1)
-	signal.Notify(quitChannel, syscall.SIGINT, syscall.SIGTERM)
-	<-quitChannel
-	//time for cleanup before exit
-	log.Println("Adios! 2")
+	log.Println("Shutting down watcher...")
 }
 
-func checkFiles(evt fsnotify.Event) {
+func checkFiles(evt fsnotify.Event) bool {
 
 	log.Println(evt.Name)
-
 	_, _, binName := parsePath(evt.Name)
 
 	if binName == BinaryName {
-
-		log.Println("MATCH FOUND, CHECK FOR SIG")
-		//Check Sig here
-
-		// TODO Move this out
-		//Load new binary
-		log.Println("Starting new process : ", evt.Name)
-		cmd := exec.Command(evt.Name)
-		err := cmd.Run()
-		errorCheck(err)
-		//s := make(chan os.Signal, 1)
-
-		//signal.Notify(s, os.Interrupt)
-		//signal.Notify(s, syscall.SIGTERM)
-		//os.Exit(0)
+		log.Println("Valid file match, checking signature....")
+		//TODO Check Sig here
+		return true
 	}
-	//
-	////f, err := os.Open(runningDirectory)
-	////errorCheck(err)
-	//
-	//info, err := os.Stat(runningDirectory + "/" + binaryName)
-	//errorCheck(err)
-	//log.Println(info)
+	log.Println("File or signature invalid.")
+	return false
 }
