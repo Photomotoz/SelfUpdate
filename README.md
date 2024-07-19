@@ -50,7 +50,7 @@ This project is written in Golang, please make sure you have Go installed
 Clone the project
 
 ```bash
-  git clone https://github.com/Louis3797/awesome-readme-template.git
+  git clone https://github.com/Photomotoz/SelfUpdate.git
 ```
 
 Go to the project directory
@@ -59,24 +59,30 @@ Go to the project directory
   cd SelfUpdate
 ```
 
-
 <!-- Usage -->
 ## Usage
-
+Build
 ```bash
-  go run main.go
+  go build
 ```
 
-Once the application is running, you may replace built binary with another of the same name to replace the running process
+```bash
+  cd bin
+```
+
+```bash
+  ./go_build_SelfUpdate
+```
+
+Once the application is running, you may replace built binary with another of the same name to replace the running process. Typically, I will update the version number of the new build to see that the version is running.
 
 <!-- Roadmap -->
 ## Roadmap
 
-* [ ] Generate hash on building binary as output artifact
+* [ ] Generate hash of binary as additional output artifact in build
 * [ ] Validate hash before executing new binary to ensure binary is from a valid update source
 * [ ] Tests
 * [ ] Store keys in env and pull in on build
-* [ ] Build pipeline
 * [ ] Log errors to file, or external resource
 * [ ] Remote deployment
 
